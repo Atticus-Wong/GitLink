@@ -24,7 +24,7 @@ const client = new Client({
   ],
 })
 
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
   console.log('Discord bot is ready! 🤖')
 })
 
@@ -33,13 +33,29 @@ client.on('guildCreate', async (guild) => {
 })
 
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) {
+  if (!interaction.isChatInputCommand()) return
+
+  const command = commands[interaction.commandName as keyof typeof commands]
+
+  if (!command) {
+    console.error(`No command matching ${interaction.commandName} was found.`)
     return
   }
-  const { commandName } = interaction
-  if (commands[commandName as keyof typeof commands]) {
-    if (interaction.isChatInputCommand()) {
-      commands[commandName as keyof typeof commands].execute(interaction)
+
+  try {
+    await command.execute(interaction)
+  } catch (error) {
+    console.error(error)
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({
+        content: 'There was an error while executing this command!',
+        ephemeral: true,
+      })
+    } else {
+      await interaction.reply({
+        content: 'There was an error while executing this command!',
+        ephemeral: true,
+      })
     }
   }
 })

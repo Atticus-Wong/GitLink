@@ -8,6 +8,14 @@ import { config } from '../config'
 export const data = new SlashCommandBuilder()
   .setName('commits')
   .setDescription('View all Commits')
+  .addStringOption((option) =>
+    option
+      .setName('repository')
+      .setDescription(
+        'Repository to fetch commits from. (AislePal/Architecture)'
+      )
+      .setRequired(true)
+  )
   .addIntegerOption((option) =>
     option
       .setName('count')
@@ -19,9 +27,10 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const count = interaction.options.getInteger('count') || 5
+  const repository = interaction.options.getString('repository', true)
   try {
     const response = await fetch(
-      `https://api.github.com/repos/${config.GITHUB_USERNAME}/${config.GITHUB_REPO}/commits`,
+      `https://api.github.com/repos/${config.GITHUB_USERNAME}/${repository}/commits`,
       {
         headers: {
           Accept: 'application/vnd.github+json',
