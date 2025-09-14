@@ -4,6 +4,7 @@ import {
   EmbedBuilder,
 } from 'discord.js'
 import { config } from '../config'
+import { tryCatch } from '../utils/trycatch'
 
 export const data = new SlashCommandBuilder()
   .setName('commits')
@@ -25,29 +26,34 @@ export const data = new SlashCommandBuilder()
       .setMaxValue(20)
   )
 
+async function fetchCommits(repository: string) {
+  const response = await fetch(
+    `https://api.github.com/repos/${config.GITHUB_USERNAME}/${repository}/commits`,
+    {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${config.GITHUB_ACCESS_TOKEN}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch commits, ${response.status} ${response.statusText}`
+    )
+  }
+
+  const commits = await response.json()
+  return commits
+}
+
 export async function execute(interaction: ChatInputCommandInteraction) {
   const count = interaction.options.getInteger('count') || 5
   const repository = interaction.options.getString('repository', true)
   try {
-    const response = await fetch(
-      `https://api.github.com/repos/${config.GITHUB_USERNAME}/${repository}/commits`,
-      {
-        headers: {
-          Accept: 'application/vnd.github+json',
-          Authorization: `Bearer ${config.GITHUB_ACCESS_TOKEN}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      await interaction.reply(
-        `Failed to fetch commits, ${response.status} ${response.statusText}`
-      )
-      return
-    }
-
-    const commits = await response.json()
+    const response = await tryCatch(fetchCommits(repository))
+    const commits = response.data
     if (!Array.isArray(commits) || commits.length === 0) {
       await interaction.reply('No commits found.')
       return

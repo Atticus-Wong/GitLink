@@ -24,8 +24,10 @@ const client = new Client({
   ],
 })
 
+// 1255688101523750993
 client.once('clientReady', async () => {
   console.log('Discord bot is ready! 🤖')
+  await deployCommands({ guildId: "1255688101523750993" })
 })
 
 client.on('guildCreate', async (guild) => {
